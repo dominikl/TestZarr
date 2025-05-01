@@ -1,0 +1,265 @@
+package biongff.testzarr;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.bc.zarr.ArrayParams;
+import com.bc.zarr.DataType;
+import com.bc.zarr.DimensionSeparator;
+import com.bc.zarr.ZarrArray;
+import com.bc.zarr.ZarrGroup;
+
+import ucar.ma2.InvalidRangeException;
+
+public class TestZarr {
+
+    private static final Logger logger = LoggerFactory.getLogger(TestZarr.class);
+
+    private int sizeX = 512;
+    private int sizeY = 256;
+    private int sizeZ = 5;
+    private int sizeT = 10;
+    private int sizeC = 3;
+    private String order = "TCZYX";
+    private Path path = Path.of("./test.zarr");
+    private DataType dataType = DataType.u1;
+    private boolean overwrite = false;
+    
+    private ZarrArray array;
+    
+    public TestZarr() throws IOException {
+    }
+
+    public TestZarr(int sizeX, int sizeY, int sizeZ, int sizeT, int sizeC, 
+                    String order, String path, DataType dataType, boolean overwrite) throws IOException {
+        if (order == null) {
+            throw new IllegalArgumentException("Order must contain X and Y");
+        }
+        order = order.toUpperCase();
+        if (!order.contains("X") || !order.contains("Y") ) {
+            throw new IllegalArgumentException("Order must contain X and Y");
+        }
+        this.sizeX = sizeX;
+        this.sizeY = sizeY;
+        this.sizeZ = sizeZ;
+        this.sizeT = sizeT;
+        this.sizeC = sizeC;
+        this.order = order;
+        this.path = Path.of(path);
+        this.dataType = dataType;
+        this.overwrite = overwrite;
+    }
+
+    public TestZarr init() throws IOException {
+        logger.info("Initializing Zarr array with dimensions: {}x{}x{}x{}x{}", sizeX, sizeY, sizeZ, sizeT, sizeC);
+        int[] shape = new int[order.length()];
+        shape[order.indexOf("C")] = sizeC;
+        shape[order.indexOf("T")] = sizeT;
+        shape[order.indexOf("Z")] = sizeZ;
+        shape[order.indexOf("Y")] = sizeY;
+        shape[order.indexOf("X")] = sizeX;
+
+        if (Files.exists(path)) {
+            if (overwrite) {
+                logger.info("Overwriting existing path: {}", path);
+                Files.walk(path)
+      		    .sorted(Comparator.reverseOrder())
+      		    .map(Path::toFile)
+      		    .forEach(File::delete);
+            } else {
+                logger.error("Path already exists and overwrite is false: {}", path);
+                throw new IOException("Path already exists");
+            }
+        }
+
+        Path series_path = path.resolve("0"); // image 0 (one image)
+        Path img_path = series_path.resolve("0"); // resolution 0 (one resolution)
+        
+        // Create parent directories if they don't exist
+        Files.createDirectories(img_path.getParent());
+        logger.debug("Created directories: {}", img_path.getParent());
+        
+        array = ZarrArray.create(img_path, new ArrayParams()
+        .shape(shape)
+        .dataType(dataType)
+        .dimensionSeparator(DimensionSeparator.SLASH)
+        );
+        logger.info("Created Zarr array at: {}", img_path);
+        return this;
+    }
+
+    public TestZarr createImage() throws IOException, InvalidRangeException {
+        logger.info("Creating image data");
+        for (int i = 0; i < sizeC; i++) {
+            for (int j = 0; j < sizeT; j++) {
+                for (int k = 0; k < sizeZ; k++) {
+                    logger.debug("Generating plane for C={}, T={}, Z={}", i, j, k);
+                    byte[] plane = Utils.generateGreyscaleImageWithText(sizeX, sizeY, "Channel " + i + ", Timepoint " + j + ", Z-plane " + k);
+                    int[] sh = new int[order.length()];
+                    int[] off = new int[order.length()];
+                    sh[order.indexOf("C")] = 1;
+                    sh[order.indexOf("T")] = 1;
+                    sh[order.indexOf("Z")] = 1;
+                    sh[order.indexOf("Y")] = sizeY;
+                    sh[order.indexOf("X")] = sizeX;
+                    off[order.indexOf("C")] = i;
+                    off[order.indexOf("T")] = j;
+                    off[order.indexOf("Z")] = k;
+                    off[order.indexOf("Y")] = 0;
+                    off[order.indexOf("X")] = 0;
+                    array.write(plane, sh, off);
+                }
+            }
+        }
+        logger.info("Finished creating image data");
+        return this;
+    }
+
+    public Path saveImage() throws IOException {
+        logger.info("Saving image metadata");
+        List<Map<String, String>> axes = new ArrayList<>();
+        for (int i = 0; i < order.length(); i++) {
+            Map<String, String> axisObj = new HashMap<>();
+            String axe = Character.toString(order.charAt(i)).toLowerCase();
+            axisObj.put("name", axe);
+            if (axe.equals("c")) {
+                axisObj.put("type", "channel");
+            } else if (axe.equals("t")) {
+                axisObj.put("type", "time");
+            } else if (axe.equals("z")) {
+                axisObj.put("type", "space");
+            } else if (axe.equals("y")) {
+                axisObj.put("type", "space");
+            } else if (axe.equals("x")) {
+                axisObj.put("type", "space");
+            }
+            axes.add(axisObj);
+        }
+
+        List<Map<String, Object>> datasets = new ArrayList<>();
+        Map<String, Object> resObj = new HashMap<>();
+        resObj.put("path", "0");
+        List<Map<String, Object>> transforms = new ArrayList<>();
+        Map<String, Object> trans = new HashMap<>();
+        trans.put("type", "scale");
+        trans.put("scale", new int[] {1, 1, 1, 1, 1});
+        transforms.add(trans);
+        resObj.put("coordinateTransformations", transforms);
+        datasets.add(resObj);
+
+        List<Object> msArray = new ArrayList<>();
+        Map<String, Object> msData = new HashMap<>();
+        msData.put("axes", axes);
+        msData.put("datasets", datasets);
+        msArray.add(msData);
+        Path series_path = path.resolve("0"); // image 0 (one image)
+        
+        // Create the series directory if it doesn't exist
+        Files.createDirectories(series_path);
+        logger.debug("Created series directory: {}", series_path);
+        
+        // Create a new ZarrGroup instead of trying to open an existing one
+        ZarrGroup z = ZarrGroup.create(series_path);
+        Map<String,Object> attrs = new HashMap<String, Object>();
+        attrs.put("multiscales", msArray);
+        z.writeAttributes(attrs);
+        logger.info("Saved image metadata to: {}", series_path);
+
+        return path;
+    }
+
+    public int getSizeX() {
+        return sizeX;
+    }
+
+    public TestZarr setSizeX(int sizeX) {
+        this.sizeX = sizeX;
+        return this;
+    }
+
+    public int getSizeY() {
+        return sizeY;
+    }
+
+    public TestZarr setSizeY(int sizeY) {
+        this.sizeY = sizeY;
+        return this;
+    }
+
+    public int getSizeZ() {
+        return sizeZ;
+    }
+
+    public TestZarr setSizeZ(int sizeZ) {
+        this.sizeZ = sizeZ;
+        return this;
+    }
+
+    public int getSizeT() {
+        return sizeT;
+    }
+
+    public TestZarr setSizeT(int sizeT) {
+        this.sizeT = sizeT;
+        return this;
+    }
+
+    public int getSizeC() {
+        return sizeC;
+    }
+
+    public TestZarr setSizeC(int sizeC) {
+        this.sizeC = sizeC;
+        return this;
+    }
+
+    public String getOrder() {
+        return order;
+    }
+
+    public TestZarr setOrder(String order) {
+        this.order = order;
+        return this;
+    }
+
+    public Path getPath() {
+        return path;
+    }
+
+    public TestZarr setPath(Path path) {
+        this.path = path;
+        return this;
+    }
+
+    public DataType getDataType() {
+        return dataType;
+    }
+
+    public TestZarr setDataType(DataType dataType) {
+        this.dataType = dataType;
+        return this;
+    }
+
+    public ZarrArray getArray() {
+        return array;
+    }
+
+    public TestZarr setOverwrite(boolean b) {
+        this.overwrite = b;
+        return this;
+    }
+
+    public boolean getOverwrite() {
+        return overwrite;
+    }
+}

@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group 'biongff'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = '11'
+targetCompatibility = '11'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://artifacts.unidata.ucar.edu/repository/unidata-all/"
+    }
+}
+
+dependencies {
+    implementation 'info.picocli:picocli:4.7.5'
+    implementation 'dev.zarr:jzarr:0.4.2'
+    implementation 'edu.ucar:cdm-core:5.3.3'
+    implementation 'org.slf4j:slf4j-api:2.0.7'
+    implementation 'ch.qos.logback:logback-classic:1.4.7'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.5'
+}
+
+application {
+    mainClass = findProperty('mainClass') ?: 'biongff.testzarr.Cli'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'biongff.testzarr.Cli'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

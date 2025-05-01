@@ -1,0 +1,7 @@
+.gradle
+.vscode
+build
+gradle
+test.zarr
+testzarr.log
+
