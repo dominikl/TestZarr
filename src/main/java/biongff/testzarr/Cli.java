@@ -16,7 +16,9 @@ import picocli.CommandLine.Parameters;
     name = "testzarr",
     mixinStandardHelpOptions = true,
     version = "1.0",
-    description = "Command line tool for Zarr test file creation"
+    description = "Command line tool for Zarr test file creation. You can " +
+            "create < 5d images by either setting c/t/z to 0 or removing the dimensions " +
+            "from the order."
 )
 public class Cli implements Runnable {
     

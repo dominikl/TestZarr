@@ -42,13 +42,6 @@ public class TestZarr {
 
     public TestZarr(int sizeX, int sizeY, int sizeZ, int sizeT, int sizeC, 
                     String order, String path, DataType dataType, boolean overwrite) throws IOException {
-        if (order == null) {
-            throw new IllegalArgumentException("Order must contain X and Y");
-        }
-        order = order.toUpperCase();
-        if (!order.contains("X") || !order.contains("Y") ) {
-            throw new IllegalArgumentException("Order must contain X and Y");
-        }
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
@@ -61,11 +54,39 @@ public class TestZarr {
     }
 
     public TestZarr init() throws IOException {
+        if (order == null || order.isEmpty()) {
+            throw new IllegalArgumentException("Order must specified.");
+        }
+        this.order = this.order.toUpperCase();
+        if (!order.contains("X") || !order.contains("Y") ) {
+            throw new IllegalArgumentException("Order must contain X and Y");
+        }
+        if (!order.contains("C")) {
+            this.sizeC = 0;
+        }
+        if (!order.contains("Z")) {
+            this.sizeZ = 0;
+        }
+        if (!order.contains("T")) {
+            this.sizeT = 0;
+        }
+        if (sizeC == 0) {
+            this.order = order.replace("C", "");
+        }
+        if (sizeZ == 0) {
+            this.order = order.replace("Z", "");
+        }
+        if (sizeT == 0) {
+            this.order = order.replace("T", "");
+        }
         logger.info("Initializing Zarr array with dimensions: {}x{}x{}x{}x{}", sizeX, sizeY, sizeZ, sizeT, sizeC);
         int[] shape = new int[order.length()];
-        shape[order.indexOf("C")] = sizeC;
-        shape[order.indexOf("T")] = sizeT;
-        shape[order.indexOf("Z")] = sizeZ;
+        if (order.contains("C"))    
+            shape[order.indexOf("C")] = sizeC;
+        if (order.contains("T"))
+            shape[order.indexOf("T")] = sizeT;
+        if (order.contains("Z"))
+            shape[order.indexOf("Z")] = sizeZ;
         shape[order.indexOf("Y")] = sizeY;
         shape[order.indexOf("X")] = sizeX;
 
@@ -100,21 +121,33 @@ public class TestZarr {
 
     public TestZarr createImage() throws IOException, InvalidRangeException {
         logger.info("Creating image data");
-        for (int i = 0; i < sizeC; i++) {
-            for (int j = 0; j < sizeT; j++) {
-                for (int k = 0; k < sizeZ; k++) {
-                    logger.debug("Generating plane for C={}, T={}, Z={}", i, j, k);
+        for (int i = 0; i <= sizeC; i++) {
+            if (i == sizeC && sizeC > 0)
+                break;
+            for (int j = 0; j <= sizeT; j++) {
+                if (j == sizeT && sizeT > 0)
+                    break;
+                for (int k = 0; k <= sizeZ; k++) {
+                    if (j == sizeZ && sizeZ > 0)
+                        break;
+                    logger.debug("Generating {}x{}px plane for C={}, T={}, Z={}", sizeX, sizeY, i, j, k);
                     byte[] plane = Utils.generateGreyscaleImageWithText(sizeX, sizeY, "Channel " + i + ", Timepoint " + j + ", Z-plane " + k);
                     int[] sh = new int[order.length()];
                     int[] off = new int[order.length()];
-                    sh[order.indexOf("C")] = 1;
-                    sh[order.indexOf("T")] = 1;
-                    sh[order.indexOf("Z")] = 1;
+                    if (order.contains("C"))
+                        sh[order.indexOf("C")] = 1;
+                    if (order.contains("T"))
+                        sh[order.indexOf("T")] = 1;
+                    if (order.contains("Z"))
+                        sh[order.indexOf("Z")] = 1;
                     sh[order.indexOf("Y")] = sizeY;
                     sh[order.indexOf("X")] = sizeX;
-                    off[order.indexOf("C")] = i;
-                    off[order.indexOf("T")] = j;
-                    off[order.indexOf("Z")] = k;
+                    if (order.contains("C"))
+                        off[order.indexOf("C")] = i;
+                    if (order.contains("T"))
+                        off[order.indexOf("T")] = j;
+                    if (order.contains("Z"))
+                        off[order.indexOf("Z")] = k;
                     off[order.indexOf("Y")] = 0;
                     off[order.indexOf("X")] = 0;
                     array.write(plane, sh, off);
