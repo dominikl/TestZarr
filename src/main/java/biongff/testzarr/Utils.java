@@ -34,11 +34,11 @@ public class Utils {
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_OFF);
 
         // Fill background with black
-        g2d.setColor(Color.WHITE);
+        g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, width, height);
 
         // Set up text properties
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(Color.WHITE);
         int fontSize = Math.min(width, height) / 20; // Scale font size based on image dimensions
         g2d.setFont(new Font("Arial", Font.BOLD, fontSize));
 
