@@ -79,7 +79,7 @@ public class TestZarr {
         if (sizeT == 0) {
             this.order = order.replace("T", "");
         }
-        logger.info("Initializing Zarr array with dimensions: {}x{}x{}x{}x{}", sizeX, sizeY, sizeZ, sizeT, sizeC);
+        logger.info("Initializing Zarr array with dimensions: x={} y={} z={} t={} c={} order={}", sizeX, sizeY, sizeZ, sizeT, sizeC, order);
         int[] shape = new int[order.length()];
         if (order.contains("C"))    
             shape[order.indexOf("C")] = sizeC;
