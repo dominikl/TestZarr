@@ -1,3 +1,22 @@
+/*
+ * Copyright (C) 2025 University of Dundee & Open Microscopy Environment.
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 package biongff.testzarr;
 
 import java.io.File;
@@ -37,9 +56,26 @@ public class TestZarr {
     
     private ZarrArray array;
     
+    /**
+     * Create a new TestZarr object with default values.
+     * @throws IOException
+     */
     public TestZarr() throws IOException {
     }
 
+    /**
+     * Create a new TestZarr object with custom values.
+     * @param sizeX
+     * @param sizeY
+     * @param sizeZ
+     * @param sizeT
+     * @param sizeC
+     * @param order
+     * @param path
+     * @param dataType
+     * @param overwrite
+     * @throws IOException
+     */
     public TestZarr(int sizeX, int sizeY, int sizeZ, int sizeT, int sizeC, 
                     String order, String path, DataType dataType, boolean overwrite) throws IOException {
         this.sizeX = sizeX;
@@ -53,6 +89,11 @@ public class TestZarr {
         this.overwrite = overwrite;
     }
 
+    /**
+     * Initialize the Zarr array.
+     * @return
+     * @throws IOException
+     */
     public TestZarr init() throws IOException {
         if (order == null || order.isEmpty()) {
             throw new IllegalArgumentException("Order must specified.");
@@ -119,6 +160,12 @@ public class TestZarr {
         return this;
     }
 
+    /**
+     * Fill the Zarr array with pixel data
+     * @return
+     * @throws IOException
+     * @throws InvalidRangeException
+     */
     public TestZarr createImage() throws IOException, InvalidRangeException {
         logger.info("Creating image data");
         for (int i = 0; i <= sizeC; i++) {
@@ -158,7 +205,12 @@ public class TestZarr {
         return this;
     }
 
-    public Path saveImage() throws IOException {
+    /**
+     * Save the image metadata to the Zarr file.
+     * @return
+     * @throws IOException
+     */
+    public Path createMetadata() throws IOException {
         logger.info("Saving image metadata");
         List<Map<String, String>> axes = new ArrayList<>();
         for (int i = 0; i < order.length(); i++) {

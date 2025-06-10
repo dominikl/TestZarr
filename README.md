@@ -1,6 +1,6 @@
 # TestZarr
 
-A Java command-line application for Zarr operations using JZarr library.
+A Java command-line tool for creating NGFF Zarrs for testing purposes.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ java -jar build/libs/TestZarr-1.0-SNAPSHOT.jar --help
 ```
 Usage: testzarr [-hV] [-c=<sizeC>] [-o=<order>] [-t=<sizeT>] [-x=<sizeX>]
                 [-y=<sizeY>] [-z=<sizeZ>] <filePath>
-Command line tool for Zarr test file creation. You can create < 5d images by
+Command line tool for creating NGFF test Zarrs. You can create < 5d images by
 either setting c/t/z to 0 or removing the dimensions from the order.
       <filePath>   Output file path (e.g., ./test.zarr)
   -c=<sizeC>       Number of channels (default: 3)
